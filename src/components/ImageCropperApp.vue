@@ -40,7 +40,6 @@
                         class="unselectable"
                     >
                     </vue-cropper>
-                    <!-- <img id="image-preview"> -->
                 </div>
                 <div class="result-image-wrapper">
                     <div class="result-preview-wrapper unselectable">
@@ -70,7 +69,7 @@
                     <div class="flex-column">
                         <div class="flex-row">
                             <label for="width-input" class="unselectable">Width (px) </label>
-                            <input type="number" v-model="widthVal" id="width-input" @change="setData" >
+                            <input type="number" v-model="widthVal" id="width-input" class="little-margin-left" @change="setData" >
                         </div>
                         <div class="flex-row">
                             <label for="height-input" class="unselectable">Height (px) </label>
@@ -82,21 +81,20 @@
                     <label for="height-input" class="unselectable">Rotate (deg) </label>
                     <input type="number" v-model="rotationVal" id="rotation-input" @change="setData" >
                 </div>
-                <div class="flex-column">
+                <div class="flex-column flip-buttons">
                     <button class="options-panel-button unselectable" @click="flipX">Flip X</button>
                     <button class="options-panel-button unselectable" @click="flipY">Flip Y</button>
                 </div>
             </div>
-            <div class="options-panel">
-                <div>
-                    <!-- <span>Crop image using px</span> -->
+            <div class="options-panel bottom">
+                <div class="flex-row">
                     <label for="crop-type-dropdown" class="unselectable">Round corners using </label>
                     <select name="crop-type" id="crop-type-dropdown" v-model="cropType">
                         <option selected value="circles">Circles</option>
                         <option value="ellipses">Ellipses</option>
                     </select>
                 </div>
-                <div>
+                <div class="flex-row">
                     <label for="radius-input" class="unselectable">Amount (%): </label>
                     <input type="number" min="0" max="50" step="0.1" v-model="radiusValue" id="radius-input">
                 </div>
@@ -105,7 +103,6 @@
                     <input type="checkbox" v-model="restrictionsAreEnabled" id="restrictions-checkbox" @change="zoomChecker">
                 </div>
             </div>
-            <!-- <img ref="roundedResultImg" :src="cropImg" :style="{ borderRadius: radius }"> -->
             <canvas ref="roundedCanvas" style="display: none;"></canvas>
         </div>
     </div>
@@ -142,6 +139,7 @@ export default defineComponent({
             aspectRatio: 0,
             linked: false,
             hardCodedLimit: 16384,
+            absoluteLimit: 163840,
             restrictionsAreEnabled: true,
             isDragging: false,
             draggedFile: null,
@@ -174,14 +172,11 @@ export default defineComponent({
             }
         },
         stopZoom(e) {
-            // var img = this.$refs.cropper.getImageData();
-            // console.log(img);
-            // if (this.widthVal > this.hardCodedLimit || this.heightVal > this.hardCodedLimit) {
-            //     e.preventDefault();
-            // }
+            let zoomingIn = e.detail.ratio < e.detail.oldRatio;
 
-            // Need to do something about not being able to zoom in after reenabling restrictions...
-            if (this.restrictionsAreEnabled && (e.detail.ratio > 20 || e.detail.ratio < 0.05)) {
+            if (this.restrictionsAreEnabled && (this.widthVal > this.hardCodedLimit || this.heightVal > this.hardCodedLimit) && zoomingIn) {
+                e.preventDefault();
+            } else if ((this.widthVal > this.absoluteLimit || this.heightVal > this.absoluteLimit) && zoomingIn) {
                 e.preventDefault();
             }
         },
@@ -270,34 +265,6 @@ export default defineComponent({
                 maxHeight: this.hardCodedLimit,
                 maxWidth: this.hardCodedLimit
             }), 0, 0);
-            // context.drawImage(this.$refs.cropper.getCroppedCanvas(), 0, 0);
-            // context.save();
-            // context.globalCompositeOperation = "destination-out";
-            // context.beginPath();
-            // context.moveTo(0,0);
-            // context.lineTo(r, 0);
-            // context.arcTo(0, 0, 0, r, r);
-            // context.closePath();
-            // context.fill();
-            // context.beginPath();
-            // context.moveTo(w, 0);
-            // context.lineTo(w - r, 0);
-            // context.arcTo(w, 0, w, r, r);
-            // context.closePath();
-            // context.fill();
-            // context.beginPath();
-            // context.moveTo(0, h);
-            // context.lineTo(0, h - r);
-            // context.arcTo(0, h, r, h, r);
-            // context.closePath();
-            // context.fill();
-            // context.beginPath();
-            // context.moveTo(w, h);
-            // context.lineTo(w - r, h);
-            // context.arcTo(w, h, w, h - r, r);
-            // context.closePath();
-            // context.fill();
-            // context.restore();
             this.waiting = false;
             return canvas.toDataURL();
         },
@@ -306,18 +273,6 @@ export default defineComponent({
             this.hideRoundedResult = false;
             this.cropImg = this.saveRounded();
         },
-        // updateRadius() {
-        //     this.radiusValue = clamp(this.radiusValue, 0, 50);
-        //     if (this.cropType === "percentage") {
-        //         this.radius = this.radiusValue + "%";
-        //     } else {
-        //         const w = this.widthVal;
-        //         const h = this.heightVal;
-        //         const amount = Math.floor(Math.min(w, h) * this.radiusValue / 100);
-        //         this.radius = amount + "px";
-        //     }
-        //     console.log(this.radius);
-        // },
         setAspectRatio() {
             if (!this.linked) {
                 this.aspectRatio = this.widthVal / this.heightVal;
@@ -486,7 +441,6 @@ h1 {
     /* border: 5px solid gray; */
     padding: 0;
     display: block;
-    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAAA3NCSVQICAjb4U/gAAAABlBMVEXMzMz////TjRV2AAAACXBIWXMAAArrAAAK6wGCiw1aAAAAHHRFWHRTb2Z0d2FyZQBBZG9iZSBGaXJld29ya3MgQ1M26LyyjAAAABFJREFUCJlj+M/AgBVhF/0PAH6/D/HkDxOGAAAAAElFTkSuQmCC);
 }
 
 .result-image-wrapper {
@@ -759,5 +713,165 @@ h1 {
 
 .ignore-children * {
     pointer-events: none;
+}
+
+@media only screen and (max-width: 1250px) {
+    .options-panel {
+        width: 100%;
+    }
+}
+
+@media only screen and (max-width: 1150px) {
+    .app-section {
+        padding: 0px 5px 5px 5px;
+    }
+
+    .options-panel {
+        gap: 1rem;
+    }
+}
+
+@media only screen and (max-width: 1050px) {
+    .options-panel {
+        height: 150px;
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
+        row-gap: 0.5rem;
+        column-gap: 0.5rem;
+    }
+
+    .options-panel.bottom {
+        display: grid;
+        grid-template: 
+            "a b"
+            "c c";
+    }
+
+    .checkboxes {
+        grid-area: c;
+        justify-self: center;
+    }
+
+    .flex-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .little-margin-left {
+        margin-left: 0.25rem;
+    }
+
+    .flip-buttons {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row !important;
+        column-gap: 0.5rem;
+    }
+}
+
+@media only screen and (max-width: 650px) {
+    .flex-row input {
+        width: 100px;
+    }
+
+    .flip-buttons {
+        width: 200px;
+        justify-self: center;
+    }
+
+    #link-button {
+        width: 35px;
+    }
+
+    #image-upload-wrapper {
+        width: 200px;
+    }
+
+    .control-panel {
+        width: 100%;
+        gap: 1rem;
+    }
+
+    .control-panel > button {
+        width: 200px;
+    }
+}
+
+@media only screen and (max-width: 500px) {
+    .options-panel {
+        row-gap: 0;
+        column-gap: 0.3rem;
+        padding: 3px;
+
+        grid-template-rows: 1fr 1fr;
+        grid-template-columns: 3fr 4fr;
+    }
+
+    .flex-row {
+        width: max-content;
+        justify-self: center;
+    }
+
+    .flex-column {
+        width: max-content;
+        justify-self: center;
+    }
+
+    .flex-row input {
+        width: 70px;
+    }
+
+    .flip-buttons {
+        width: 160px;
+        justify-self: center;
+    }
+
+    #image-upload-wrapper {
+        height: 40px;
+    }
+
+    #image-upload-wrapper > #upload-span {
+        font-size: 1rem;
+    }
+
+    .control-panel > button {
+        height: 40px;
+        font-size: 1rem;
+    }
+}
+
+@media only screen and (max-width: 430px) {
+    .options-panel * {
+        font-size: 0.8rem;
+    }
+    .flex-row {
+        width: max-content;
+        justify-self: center;
+    }
+
+    .flex-column {
+        width: max-content;
+        justify-self: center;
+    }
+    
+    .flex-row input {
+        width: 70px;
+    }
+
+    .flip-buttons {
+        width: 160px;
+        justify-self: center;
+    }
+
+    #image-upload-wrapper > #upload-span {
+        font-size: 0.8rem;
+    }
+
+    .control-panel > button {
+        font-size: 0.8rem;
+    }
 }
 </style>
